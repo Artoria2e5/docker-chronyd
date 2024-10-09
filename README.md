@@ -1,18 +1,20 @@
 ## About this container
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/simonrupf/chronyd.svg?logo=docker&label=pulls&style=for-the-badge&color=0099ff&logoColor=ffffff)](https://hub.docker.com/r/simonrupf/chronyd/)
-[![Docker Stars](https://img.shields.io/docker/stars/simonrupf/chronyd.svg?logo=docker&label=stars&style=for-the-badge&color=0099ff&logoColor=ffffff)](https://hub.docker.com/r/simonrupf/chronyd/)
+[![Docker Pulls](https://img.shields.io/docker/pulls/Artoria2e5/rsntp.svg?logo=docker&label=pulls&style=for-the-badge&color=0099ff&logoColor=ffffff)](https://hub.docker.com/r/Artoria2e5/rsntp/)
+[![Docker Stars](https://img.shields.io/docker/stars/Artoria2e5/rsntp.svg?logo=docker&label=stars&style=for-the-badge&color=0099ff&logoColor=ffffff)](https://hub.docker.com/r/Artoria2e5/rsntp/)
 [![GitHub Stars](https://img.shields.io/github/stars/simonrupf/docker-chronyd.svg?logo=github&label=stars&style=for-the-badge&color=0099ff&logoColor=ffffff)](https://github.com/simonrupf/docker-chronyd)
 [![Apache licensed](https://img.shields.io/badge/license-Apache-blue.svg?logo=apache&style=for-the-badge&color=0099ff&logoColor=ffffff)](https://raw.githubusercontent.com/simonrupf/docker-chronyd/master/LICENSE)
 
-This container runs [chrony](https://chrony-project.org/) on [Alpine Linux](https://alpinelinux.org/).
+This container runs [chrony](https://chrony-project.org/) and [rsntp](https://github.com/mlichvar/rsntp) on [Alpine Linux](https://alpinelinux.org/).
 
-[chrony](https://chrony-project.org/) is a versatile implementation of the Network Time Protocol (NTP). It can synchronise the system clock with NTP servers, reference clocks (e.g. GPS receiver), and manual input using wristwatch and keyboard. It can also operate as an NTPv4 (RFC 5905) server and peer to provide a time service to other computers in the network.
+* [chrony](https://chrony-project.org/) is a versatile implementation of the Network Time Protocol (NTP). It can synchronise the system clock with NTP servers, reference clocks (e.g. GPS receiver), and manual input using wristwatch and keyboard. It can also operate as an NTPv4 (RFC 5905) server and peer to provide a time service to other computers in the network.
+* rsntp is a simple but high-performance NTP server. It is designed to run in multiple threads and serve the current system time, stealing the state from the "real" NTP server. It is useful for very high loads such as the cn.pool.ntp.org zone.
 
+BECAUSE OF how rsntp works, this container MUST change your system time. If you are not comfortable with this, please do not use this container.
 
 ## Supported Architectures
 
-Architectures officially supported by this Docker container. Simply pulling this container from [Docker Hub](https://hub.docker.com/r/simonrupf/chronyd/) should retrieve the correct image for your architecture.
+Architectures officially supported by this Docker container. Simply pulling this container from [Docker Hub](https://hub.docker.com/r/Artoria2e5/rsntp/) should retrieve the correct image for your architecture.
 
 ![Linux x86-64](https://img.shields.io/badge/linux/amd64-green?style=flat-square)
 ![ARMv8 64-bit](https://img.shields.io/badge/linux/arm64-green?style=flat-square)
@@ -27,31 +29,22 @@ Architectures officially supported by this Docker container. Simply pulling this
 
 ### With the Docker CLI
 
-Pull and run -- it's this simple.
+Pull and run. But before you think "it's so simple, I should not read on",
+please do at least read `run.sh` to figure out what to do to add stuff like PTP.
 
+```bash-session
+docker pull Artoria2e5/rsntp
+docker run --name=ntp                           \
+           --restart=always                     \
+           --detach                             \
+           --publish=123:123/udp                \
+           --read-only                          \
+           --tmpfs=/etc/chrony:rw,mode=1750     \
+           --tmpfs=/run/chrony:rw,mode=1750     \
+           --tmpfs=/var/lib/chrony:rw,mode=1750 \
+           --cap-add=SYS_TIME                   \
+           Artoria2e5/rsntp
 ```
-# pull from docker hub
-$> docker pull simonrupf/chronyd
-
-# run ntp
-$> docker run --name=ntp            \
-              --restart=always      \
-              --detach              \
-              --publish=123:123/udp \
-              simonrupf/chronyd
-
-# OR run ntp with higher security
-$> docker run --name=ntp                           \
-              --restart=always                     \
-              --detach                             \
-              --publish=123:123/udp                \
-              --read-only                          \
-              --tmpfs=/etc/chrony:rw,mode=1750     \
-              --tmpfs=/run/chrony:rw,mode=1750     \
-              --tmpfs=/var/lib/chrony:rw,mode=1750 \
-              simonrupf/chronyd
-```
-
 
 ### With Docker Compose
 
@@ -60,10 +53,10 @@ Using the docker-compose.yml file included in this git repo, you can build the c
 
 ```
 # run ntp
-$> docker compose up -d ntp
+docker compose up -d ntp
 
 # (optional) check the ntp logs
-$> docker compose logs ntp
+docker compose logs ntp
 ```
 
 
@@ -73,13 +66,13 @@ $> docker compose logs ntp
 
 ```
 # deploy ntp stack to the swarm
-$> docker stack deploy -c docker-compose.yml chronyd
+docker stack deploy -c docker-compose.yml chronyd
 
 # check that service is running
-$> docker stack services chronyd
+docker stack services chronyd
 
 # (optional) view the ntp logs
-$> docker service logs -f chronyd-ntp
+docker service logs -f chronyd-ntp
 ```
 
 
@@ -90,10 +83,10 @@ environment. Once updated, simply execute the build then run scripts.
 
 ```
 # build ntp
-$> ./build.sh
+./build.sh
 
 # run ntp
-$> ./run.sh
+./run.sh
 ```
 
 
@@ -112,8 +105,8 @@ Do note, to configure more than one server, you must use a comma delimited list 
 # (default) NTP pool
 NTP_SERVERS="0.pool.ntp.org,1.pool.ntp.org,2.pool.ntp.org,3.pool.ntp.org"
 
-# cloudflare
-NTP_SERVERS="time.cloudflare.com"
+# cloudflare (4 from pool)
+NTP_SERVERS="time.cloudflare.com,time.cloudflare.com,time.cloudflare.com,time.cloudflare.com"
 
 # google
 NTP_SERVERS="time1.google.com,time2.google.com,time3.google.com,time4.google.com"
@@ -125,6 +118,10 @@ NTP_SERVERS="ntp1.aliyun.com,ntp2.aliyun.com,ntp3.aliyun.com,ntp4.aliyun.com"
 NTP_SERVERS="127.127.1.1"
 ```
 
+(In real life you should *seriously* mix servers from different providers. Never put all your eggs in
+one basket, especially when it comes to time. Get at least three from different providers -- the pool
+automatically does this for you, but if you're using those corporate servers, you need to do it yourself.)
+
 If you're interested in a public list of stratum 1 servers, you can have a look at the following lists.
 
  * https://www.advtimesync.com/docs/manual/stratum1.html (Do make sure to verify the ntp server is active
@@ -134,6 +131,18 @@ If you're interested in a public list of stratum 1 servers, you can have a look 
 It can also be the case that your use-case does not require a stratum 1 server -- most use-cases don't!
 
  * https://support.ntp.org/Servers/StratumTwoTimeServers
+
+## RSNTP Options
+
+RSNTP options are simple: you just set the number of threads, plus the nice level. We have those variables:
+
+* `RSNTP_THREADS` - the number of threads to use. Default is `$(nproc)`.
+  * `RSNTP_THREADS_4` - the number of threads for IPv4. Default is `max(1, RSNTP_THREADS * 2 / 3)`.
+  * `RSNTP_THREADS_6` - the number of threads for IPv6. Default is `max(1, RSNTP_THREADS - RSNTP_THREADS_6)`.
+  * We DO NOT check that the sum of these two is equal to `RSNTP_THREADS`, and it honestly doesn't matter, because
+    only the `_4` and `_6` variables are used in the final invocation.
+* `RSNTP_NICE` - the nice level to run at. Default is `5`, because things can get a bit busy and NTP is usually
+  a side task. If you're running this on a dedicated machine, you might want to set this to `0`.
 
 ## Chronyd Options
 
@@ -146,6 +155,7 @@ chrony will be configured to:
 > be reported using the clients command in chronyc. This option also effectively disables server support
 > for the NTP interleaved mode.
 
+*This is not really useful, because the sole client should be rsntp -- localhost.*
 
 ## Logging
 
@@ -182,7 +192,7 @@ option to the container to enable it. As an example, using `docker-compose.yaml`
 ```yaml
   ...
   environment:
-    - NTP_SERVER=time.cloudflare.com
+    - NTP_SERVER=time.cloudflare.com,time.cloudflare.com,time.cloudflare.com,time.cloudflare.com
     - ENABLE_NTS=true
     ...
 ```
@@ -240,14 +250,14 @@ From any machine that has `ntpdate` you can query your new NTP container with th
 command:
 
 ```
-$> ntpdate -q <DOCKER_HOST_IP>
+ntpdate -q <DOCKER_HOST_IP>
 ```
 
 
 Here is a sample output from my environment:
 
-```
-$> ntpdate -q 10.13.13.9
+```bash-session
+$ ntpdate -q 10.13.13.9
 server 10.13.1.109, stratum 4, offset 0.000642, delay 0.02805
 14 Mar 19:21:29 ntpdate[26834]: adjust time server 10.13.13.109 offset 0.000642 sec
 ```
@@ -255,16 +265,16 @@ server 10.13.1.109, stratum 4, offset 0.000642, delay 0.02805
 
 If you see a message, like the following, it's likely the clock is not yet synchronized.
 You should see this go away if you wait a bit longer and query again.
-```
-$> ntpdate -q 10.13.13.9
+```bash-session
+$ ntpdate -q 10.13.13.9
 server 10.13.13.9, stratum 16, offset 0.005689, delay 0.02837
 11 Dec 09:47:53 ntpdate[26030]: no server suitable for synchronization found
 ```
 
 To see details on the ntp status of your container, you can check with the command below
 on your docker host:
-```
-$> docker exec ntp chronyc tracking
+```bash-session
+$ docker exec ntp chronyc tracking
 Reference ID    : D8EF2300 (time1.google.com)
 Stratum         : 2
 Ref time (UTC)  : Sun Mar 15 04:33:30 2020
@@ -282,8 +292,8 @@ Leap status     : Normal
 
 
 Here is how you can see a peer list to verify the state of each ntp source configured:
-```
-$> docker exec ntp chronyc sources
+```bash-session
+$ docker exec ntp chronyc sources
 210 Number of sources = 2
 MS Name/IP address         Stratum Poll Reach LastRx Last sample
 ===============================================================================
@@ -294,29 +304,14 @@ MS Name/IP address         Stratum Poll Reach LastRx Last sample
 
 Finally, if you'd like to see statistics about the collected measurements of each ntp
 source configured:
-```
-$> docker exec ntp chronyc sourcestats
+```bash-session
+$ docker exec ntp chronyc sourcestats
 210 Number of sources = 2
 Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev
 ==============================================================================
 time.cloudflare.com        35  18  139m     +0.014      0.141   -662us   530us
 time1.google.com           33  13  128m     -0.007      0.138   +318us   460us
 ```
-
-
-Are you seeing messages like these and wondering what is going on?
-```
-$ docker logs -f ntps
-[...]
-2021-05-25T18:41:40Z System clock wrong by -2.535004 seconds
-2021-05-25T18:41:40Z Could not step system clock
-2021-05-25T18:42:47Z System clock wrong by -2.541034 seconds
-2021-05-25T18:42:47Z Could not step system clock
-```
-
-Good question! Since `chronyd` is running with the `-x` flag, it will not try to control
-the system (container host) clock. This of course is necessary because the process does not
-have priviledge (for good reason) to modify the clock on the system.
 
 Like any host on your network, simply use your preferred ntp client to pull the time from
 the running ntp container on your container host.

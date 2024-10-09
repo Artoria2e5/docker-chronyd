@@ -1,5 +1,5 @@
 #!/bin/sh
-
+set -m
 DEFAULT_NTP="0.pool.ntp.org,1.pool.ntp.org,2.pool.ntp.org,3.pool.ntp.org"
 CHRONY_CONF_FILE="/etc/chrony/chrony.conf"
 
@@ -71,25 +71,40 @@ if [ -e /dev/ptp0 ]; then
 fi
 
 # final bits for the config file
-{
-  echo
-  echo "driftfile /var/lib/chrony/chrony.drift"
-  echo "makestep 0.1 3"
+cat <<EOF >> ${CHRONY_CONF_FILE}
+driftfile /var/lib/chrony/chrony.drift
+makestep 0.1 3
+$(
   if [ -n "${NTP_DIRECTIVES}" ]; then
     echo -e "${NTP_DIRECTIVES}"
   fi
   if [ "${NOCLIENTLOG:-false}" = true ]; then
     echo "noclientlog"
   fi
-  echo
-  echo "allow all"
-} >> ${CHRONY_CONF_FILE}
+)
+
+# We only serve rsntp, internally
+allow 127.0.0.1
+port 11123
+bindaddress 127.0.0.1
+EOF
 
 # enable control of system clock, disabled by default
-SYSCLK="-x"
-if [[ "${ENABLE_SYSCLK:-false}" = true ]]; then
-  SYSCLK=""
+SYSCLK=""
+
+# decide how many threads for rsntp
+: $(( RSNTP_THREADS   = RSNTP_THREADS   > 0 ? RSNTP_THREADS : $(nproc) ))
+: $(( _RSNTP_THREADS_4 = RSNTP_THREADS * 2 / 3 ))
+: $(( RSNTP_THREADS_4 = RSNTP_THREADS_4 > 0 ? RSNTP_THREADS_4 : _RSNTP_THREADS_4 > 0 ? _RSNTP_THREADS_4 : 1 ))
+: $(( _RSNTP_THREADS_6 = RSNTP_THREADS - RSNTP_THREADS_4 ))
+: $(( RSNTP_THREADS_6 = RSNTP_THREADS_6 > 0 ? RSNTP_THREADS_6 : _RSNTP_THREADS_6 > 0 ? _RSNTP_THREADS_6 : 1 ))
+if ! echo "$RSNTP_NICE" | grep -q '^-?[0-9]+$' ; then
+  RSNTP_NICE=5
 fi
 
-## startup chronyd in the foreground
-exec /usr/sbin/chronyd -u chrony -d ${SYSCLK} -L ${LOG_LEVEL}
+set -xv
+## startup chronyd in the background
+/usr/sbin/chronyd -u chrony -d ${SYSCLK} -L ${LOG_LEVEL} &
+
+## start rsntp in the foreground; wait.
+nice -n${RSNTP_NICE} /usr/bin/rsntp -4 $RSNTP_THREADS_4 -6 $RSNTP_THREADS_6

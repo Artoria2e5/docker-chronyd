@@ -21,17 +21,13 @@ function start_container() {
       echo "PTP device not found: /dev/ptp0"
     fi
   fi
-  if [ "${ENABLE_SYSCLK:-false}" = true ]; then
-    echo "SYSCLK requested, adding SYS_TIME capability..."
-    DOCKER_OPTS="${DOCKER_OPTS} --cap-add=SYS_TIME"
-  fi
+  DOCKER_OPTS="${DOCKER_OPTS} --cap-add=SYS_TIME"
   $DOCKER run --name=${CONTAINER_NAME}             \
               --detach=true                        \
               --restart=always                     \
               --publish=123:123/udp                \
               --env=NTP_SERVERS=${NTP_SERVERS}     \
               --env=ENABLE_NTS=${ENABLE_NTS}       \
-              --env=ENABLE_SYSCLK=${ENABLE_SYSCLK} \
               --env=NOCLIENTLOG=${NOCLIENTLOG}     \
               --env=LOG_LEVEL=${LOG_LEVEL}         \
               --read-only=true                     \

@@ -12,9 +12,9 @@ services:
       - /run/chrony:rw,mode=1750
       - /var/lib/chrony:rw,mode=1750
     ports:
-      - 123:123/udp
-#    cap_add:
-#      - SYS_TIME
+      - 1123:123/udp
+    cap_add:
+      - SYS_TIME
 #     devices:
 #       - /dev/ptp0:/dev/ptp0
     environment:
@@ -23,4 +23,3 @@ services:
 #      - TZ=America/Vancouver
 #      - NOCLIENTLOG=true
 #      - ENABLE_NTS=true
-#      - ENABLE_SYSCLK=true
