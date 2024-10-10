@@ -57,11 +57,11 @@ for N in $NTP_SERVERS; do
 
   # found external time servers
   else
+    OPTS="iburst xleave"
     if [[ "${ENABLE_NTS:-false}" = true ]]; then
-      echo "server "${N_CLEANED}" iburst nts" >> ${CHRONY_CONF_FILE}
-    else
-      echo "server "${N_CLEANED}" iburst" >> ${CHRONY_CONF_FILE}
+      OPTS+=" nts"
     fi
+    echo "server ${N_CLEANED} iburst nts" >> ${CHRONY_CONF_FILE}
   fi
 done
 
@@ -87,6 +87,8 @@ $(
 allow 127.0.0.1
 port 11123
 bindaddress 127.0.0.1
+
+$ADDITIONAL_CHRONYCONF
 EOF
 
 # enable control of system clock, disabled by default

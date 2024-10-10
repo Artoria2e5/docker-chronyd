@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   ntp:
     build: .
@@ -18,8 +16,11 @@ services:
 #     devices:
 #       - /dev/ptp0:/dev/ptp0
     environment:
-      - NTP_SERVERS=time.cloudflare.com
-      - LOG_LEVEL=0
-#      - TZ=America/Vancouver
-#      - NOCLIENTLOG=true
-#      - ENABLE_NTS=true
+      NTP_SERVERS: time.cloudflare.com,time.cloudflare.com
+      LOG_LEVEL: 0
+#      TZ: America/Vancouver
+#      NOCLIENTLOG: "true"
+#      ENABLE_NTS: "true"
+      ENABLE_SYSCLK: "true"
+#      ADDITIONAL_CHRONYCONF: |
+#          peer example.com iburst xleave
