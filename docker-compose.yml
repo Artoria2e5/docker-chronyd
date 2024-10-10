@@ -1,7 +1,7 @@
 services:
   ntp:
     build: .
-    image: simonrupf/chronyd:latest
+    image: Artoria2e5/chronyd:latest
     container_name: ntp
     restart: always
     read_only: true
