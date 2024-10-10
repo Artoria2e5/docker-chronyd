@@ -27,6 +27,18 @@ Architectures officially supported by this Docker container. Simply pulling this
 
 ## How to Run this container
 
+Before you go, tell conntrack to keep its hands off your thousands of connections:
+```
+iptables -t raw -A PREROUTING -p udp -m udp --dport 123 -j NOTRACK
+iptables -t raw -A PREROUTING -p udp -m udp --dport 11123 -j NOTRACK
+iptables -t raw -A OUTPUT -p udp -m udp --sport 123 -j NOTRACK
+iptables -t raw -A OUTPUT -p udp -m udp --sport 11123 -j NOTRACK
+ip6tables -t raw -A PREROUTING -p udp -m udp --dport 123 -j NOTRACK
+ip6tables -t raw -A PREROUTING -p udp -m udp --dport 11123 -j NOTRACK
+ip6tables -t raw -A OUTPUT -p udp -m udp --sport 123 -j NOTRACK
+ip6tables -t raw -A OUTPUT -p udp -m udp --sport 11123 -j NOTRACK
+```
+
 ### With the Docker CLI
 
 Pull and run. But before you think "it's so simple, I should not read on",
